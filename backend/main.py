@@ -1,12 +1,16 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from bson import ObjectId
-from datetime import datetime, timedelta
 import sys
 import os
 
 # Add backend directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Apply Pydantic v1 + Python 3.13 compatibility patch BEFORE importing FastAPI
+from pydantic_fix import *  # noqa: F401, F403
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from bson import ObjectId
+from datetime import datetime, timedelta
 
 from database import users_collection, appointments_collection, clients_collection, notes_collection
 from schemas import (
