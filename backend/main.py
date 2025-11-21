@@ -13,6 +13,7 @@ from bson import ObjectId
 from datetime import datetime, timedelta
 
 from database import users_collection, appointments_collection, clients_collection, notes_collection
+from data_api import USE_DATA_API, find_one as data_find_one, insert_one as data_insert_one
 from schemas import (
     LoginRequest,
     LoginResponse,
@@ -43,7 +44,11 @@ app.add_middleware(
 
 @app.post("/api/auth/login", response_model=LoginResponse)
 async def login(payload: LoginRequest):
-    user = await users_collection.find_one({"email": payload.email})
+    # If Atlas Data API is configured, use it instead of direct driver
+    if USE_DATA_API:
+        user = await data_find_one("users", {"email": payload.email})
+    else:
+        user = await users_collection.find_one({"email": payload.email})
 
     if not user or user.get("password") != payload.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -62,20 +67,26 @@ async def register(payload: RegisterRequest):
     # Debugging: print incoming role and show that request reached the route
     # (This will only run for POST; OPTIONS is handled by CORSMiddleware.)
     print(f"Register attempt: email={payload.email}, role={payload.role}")
-    existing = await users_collection.find_one({"email": payload.email})
+    # check existing user via Data API or driver
+    if USE_DATA_API:
+        existing = await data_find_one("users", {"email": payload.email})
+    else:
+        existing = await users_collection.find_one({"email": payload.email})
     if existing:
         raise HTTPException(status_code=409, detail="User already exists")
 
     if not payload.password or len(payload.password) < 4:
         raise HTTPException(status_code=400, detail="Password too short")
 
-    await users_collection.insert_one(
-        {
-            "email": payload.email,
-            "password": payload.password,  # TODO: hash later
-            "role": payload.role,
-        }
-    )
+    user_doc = {
+        "email": payload.email,
+        "password": payload.password,  # TODO: hash later
+        "role": payload.role,
+    }
+    if USE_DATA_API:
+        await data_insert_one("users", user_doc)
+    else:
+        await users_collection.insert_one(user_doc)
 
     if payload.role == "admin":
         msg = "Admin account created successfully"
