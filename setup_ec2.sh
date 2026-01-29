@@ -10,7 +10,8 @@ FRONTEND_BUILD_DIR="$APP_DIR/build"
 echo "Step 1: System Update & Dependencies"
 sudo apt-get update
 # Suppress prompts during install
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip python3-venv nginx nodejs npm acl
+# Removing 'npm' from install list as it is included in nodejs (NodeSource) and causes conflicts
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip python3-venv nginx nodejs acl
 
 echo "Step 2: Backend Setup"
 cd $BACKEND_DIR
