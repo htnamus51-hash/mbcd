@@ -92,16 +92,16 @@ export function ClientsPage() {
 
           <div className="flex gap-2 mt-4">
             <button className="px-3 py-1.5 bg-cyan-50 text-cyan-700 rounded-lg text-xs">
-              All Clients (142)
+              All Clients ({clients.length})
             </button>
             <button className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200">
-              Active (87)
+              Active ({clients.filter(c => c.status === 'active').length})
             </button>
             <button className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200">
-              Pending (12)
+              Pending ({clients.filter(c => c.status === 'pending').length})
             </button>
             <button className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200">
-              Inactive (43)
+              Inactive ({clients.filter(c => c.status === 'inactive').length})
             </button>
           </div>
         </CardHeader>
