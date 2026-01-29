@@ -3,8 +3,16 @@ import os
 from motor.motor_asyncio import AsyncIOMotorClient
 import certifi
 from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv()
+# Try to find .env file in backend directory
+env_path = Path(__file__).parent.parent / 'backend' / '.env'
+load_dotenv(dotenv_path=env_path)
+
+# Fallback to local .env if backend one isn't found
+if not os.getenv("MONGO_URI"):
+    load_dotenv()
+
 MONGO_URI = os.getenv("MONGO_URI")
 
 async def test_patients():
