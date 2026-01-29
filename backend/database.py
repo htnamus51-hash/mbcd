@@ -36,7 +36,7 @@ try:
     contacts_collection = db.contacts
 
     # Second database for external patient registrations
-    db_patients = client.mbc_patients
+    db_patients = client.get_database("mbc_patients")
     patients_collection = db_patients.patients
 
     print("[DEBUG] MongoDB connection initialized successfully")
