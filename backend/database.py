@@ -25,7 +25,8 @@ try:
         connectTimeoutMS=15000,
         tlsCAFile=certifi.where() # Use certifi bundle strictly
     )
-    db = client.get_database("mbc_db")
+    # Switch to 'mbc' database which actually contains the data
+    db = client.get_database("mbc")
     users_collection = db.users
     appointments_collection = db.appointments
     clients_collection = db.clients
