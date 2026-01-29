@@ -60,6 +60,8 @@ export function NotesPage() {
       }
 
       setNotes(notes.filter((note) => note.id !== noteId));
+      // Dispatch event to update dashboard
+      window.dispatchEvent(new CustomEvent('note:updated', { detail: { id: noteId } }));
       alert('Note deleted successfully');
     } catch (err) {
       console.error('Error deleting note', err);
@@ -90,15 +92,25 @@ export function NotesPage() {
   };
 
   const categorizeNotes = () => {
-    const today = '2025-11-20';
-    const tomorrow = '2025-11-21';
+    // Get actual today's date
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
     
     const today_notes: any[] = [];
     const tomorrow_notes: any[] = [];
     const done_notes: any[] = [];
     const missed_notes: any[] = [];
     
-    const currentTime = '15:34';
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const currentTime = `${hours}:${minutes}`;
     
     notes.forEach((note) => {
       // Completed notes go to Done
@@ -118,7 +130,7 @@ export function NotesPage() {
         today_notes.push(note);
       }
       // Tomorrow's reminders
-      else if (note.reminder_date === tomorrow) {
+      else if (note.reminder_date === tomorrowStr) {
         tomorrow_notes.push(note);
       }
       // Future reminders (beyond tomorrow)

@@ -10,6 +10,7 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     role: Literal["admin", "doctor"]
     message: str
+    access_token: str | None = None
 
 
 class RegisterRequest(BaseModel):
@@ -77,3 +78,82 @@ class NoteResponse(BaseModel):
     created_at: str
     created_by: str = "Dr. Admin"
     completed: bool = False
+
+
+# ==================== MESSAGING SCHEMAS ====================
+
+
+class UserProfile(BaseModel):
+    email: str
+    full_name: str
+    role: Literal["admin", "doctor"]
+    user_type: Literal["admin", "doctor"]
+    avatar_url: str | None = None
+
+
+class MessageCreate(BaseModel):
+    sender_email: str  # Email of the person sending (from localStorage)
+    receiver_email: str
+    content: str
+    conversation_id: str | None = None  # If None, create new conversation
+    attachments: list[dict] | None = None
+
+
+class MessageResponse(BaseModel):
+    id: str
+    conversation_id: str
+    sender_email: str
+    receiver_email: str
+    content: str
+    timestamp: str
+    read: bool
+    read_at: str | None = None
+    attachments: list[dict] | None = None
+
+
+class ConversationResponse(BaseModel):
+    id: str
+    participants: list[str]
+    type: Literal["admin-admin", "doctor-doctor", "admin-doctor"]
+    created_at: str
+    updated_at: str
+    last_message_at: str | None = None
+    unread_count: int = 0
+
+
+class ConversationDetailResponse(BaseModel):
+    id: str
+    participants: list[str]
+    type: Literal["admin-admin", "doctor-doctor", "admin-doctor"]
+    created_at: str
+    updated_at: str
+    messages: list[MessageResponse]
+
+
+# ==================== CONTACT FORM SCHEMAS ====================
+
+
+class ContactSubmission(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone: str | None = None
+    reason: str  # "Initial Consultation", "Follow-up", "General Inquiry", etc.
+    message: str
+    preferred_contact_method: str = "email"  # email, phone, both
+
+
+class ContactResponse(BaseModel):
+    id: str
+    first_name: str
+    last_name: str
+    email: str
+    phone: str | None = None
+    reason: str
+    message: str
+    preferred_contact_method: str
+    status: str = "new"  # new, contacted, converted_to_patient, closed
+    created_at: str
+    notes: str | None = None
+
+

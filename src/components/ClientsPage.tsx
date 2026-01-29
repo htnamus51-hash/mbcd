@@ -8,6 +8,16 @@ import { apiUrl } from '@/config';
 export function ClientsPage() {
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredClients = clients.filter(client => {
+    const term = searchTerm.toLowerCase();
+    const fullName = `${client.first_name} ${client.last_name}`.toLowerCase();
+    const email = (client.email || '').toLowerCase();
+    const phone = (client.phone || '').toLowerCase();
+    
+    return fullName.includes(term) || email.includes(term) || phone.includes(term);
+  });
 
   const fetchClients = async () => {
     setLoading(true);
@@ -70,6 +80,8 @@ export function ClientsPage() {
                 type="text"
                 placeholder="Search by name, email, or phone..."
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <button className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-100 transition-colors">
@@ -98,10 +110,12 @@ export function ClientsPage() {
           <div className="space-y-3">
             {loading ? (
               <p className="text-slate-600">Loading clients...</p>
-            ) : clients.length === 0 ? (
-              <p className="text-slate-600">No clients found. Create one to get started.</p>
+            ) : filteredClients.length === 0 ? (
+              <p className="text-slate-600">
+                {searchTerm ? 'No clients found matching your search.' : 'No clients found. Create one to get started.'}
+              </p>
             ) : (
-              clients.map((client) => (
+              filteredClients.map((client) => (
               <div
                 key={client.id}
                 className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
@@ -179,7 +193,7 @@ export function ClientsPage() {
 
           <div className="mt-6 pt-4 border-t border-slate-200">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-slate-600">Showing 1-5 of 142 clients</div>
+              <div className="text-sm text-slate-600">Showing {filteredClients.length} of {clients.length} clients</div>
               <div className="flex gap-2">
                 <button className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">
                   Previous

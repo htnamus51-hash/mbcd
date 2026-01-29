@@ -1,20 +1,37 @@
-import { Calendar, Clock, UserPlus, ClipboardList, Plus, FileText, Upload, Users, Activity, CheckCircle2, TrendingUp, X } from 'lucide-react';
+import { Calendar, Clock, UserPlus, ClipboardList, Plus, FileText, Upload, Users, Activity, CheckCircle2, TrendingUp, X, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { useState, useEffect } from 'react';
 import { apiUrl } from '@/config';
+import { NewPatientRegistrations } from './NewPatientRegistrations';
 
-export function DashboardHome() {
+interface DashboardHomeProps {
+  onNavigate?: (page: string) => void;
+}
+
+export function DashboardHome({ onNavigate }: DashboardHomeProps) {
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [showAddClientModal, setShowAddClientModal] = useState(false);
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
   const [todaysSessions, setTodaysSessions] = useState<any[]>([]);
   const [todaysNotes, setTodaysNotes] = useState<any[]>([]);
+  const [totalClients, setTotalClients] = useState(0);
+  const [thisWeekSessions, setThisWeekSessions] = useState(0);
+  
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDateStr = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
   // Note form state
   const [noteType, setNoteType] = useState('Progress Note');
   const [noteContent, setNoteContent] = useState('');
-  const [noteDate, setNoteDate] = useState('2025-11-20');
+  const [noteDate, setNoteDate] = useState(getTodayDateStr());
   const [noteTime, setNoteTime] = useState('09:00');
   // Add Client form state
   const [clientFirstName, setClientFirstName] = useState('');
@@ -27,7 +44,7 @@ export function DashboardHome() {
   // Appointment form state
   const [appointmentDoctor, setAppointmentDoctor] = useState('Dr. Rebecca Smith');
   const [appointmentClient, setAppointmentClient] = useState('');
-  const [appointmentDate, setAppointmentDate] = useState('2025-11-18');
+  const [appointmentDate, setAppointmentDate] = useState(getTodayDateStr());
   const [appointmentTime, setAppointmentTime] = useState('09:00');
   const [appointmentDuration, setAppointmentDuration] = useState('60');
   const [appointmentType, setAppointmentType] = useState('Therapy Session');
@@ -39,8 +56,16 @@ export function DashboardHome() {
       return;
     }
 
-    const today = '2025-11-18'; // This should match your actual today date
-    const currentTime = '15:34'; // Current time
+    // Get actual today's date and current time
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const currentTime = `${hours}:${minutes}`;
     
     // Validate appointment date/time
     if (appointmentDate < today) {
@@ -293,16 +318,45 @@ export function DashboardHome() {
     }
   };
 
-  // Fetch today's appointments and notes
+  // Fetch today's appointments, notes, clients and weekly sessions
   useEffect(() => {
     const fetchTodayData = async () => {
-      const today = '2025-11-20'; // Today's date
-      const currentTime = '15:34'; // Current time
+      // Get actual today's date
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const today = `${year}-${month}-${day}`;
+      
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTime = `${hours}:${minutes}`;
+      
       try {
+        // Fetch all clients
+        const clientRes = await fetch(apiUrl('/api/clients'));
+        if (clientRes.ok) {
+          const clients = await clientRes.json();
+          setTotalClients(clients.length);
+        }
+
         // Fetch all appointments
         const apptRes = await fetch(apiUrl('/api/appointments'));
         if (apptRes.ok) {
           const appts = await apptRes.json();
+          
+          // Count sessions for this week
+          const weekStart = new Date(now);
+          weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekEnd.getDate() + 6); // End of week (Saturday)
+          
+          const weekSessions = appts.filter((appt: any) => {
+            const apptDate = new Date(appt.datetime.split('T')[0]);
+            return apptDate >= weekStart && apptDate <= weekEnd;
+          });
+          setThisWeekSessions(weekSessions.length);
+          
           // Filter for today only AND future times only
           const todayAppts = appts.filter((appt: any) => {
             const apptDate = appt.datetime.split('T')[0];
@@ -361,28 +415,31 @@ export function DashboardHome() {
     // Listen for appointment/note creation events
     const handleAppointmentCreated = () => fetchTodayData();
     const handleNoteCreated = () => fetchTodayData();
+    const handleClientCreated = () => fetchTodayData();
     
     window.addEventListener('appointment:created', handleAppointmentCreated);
     window.addEventListener('note:created', handleNoteCreated);
+    window.addEventListener('client:created', handleClientCreated);
 
     return () => {
       window.removeEventListener('appointment:created', handleAppointmentCreated);
       window.removeEventListener('note:created', handleNoteCreated);
+      window.removeEventListener('client:created', handleClientCreated);
     };
   }, []);
 
-  const newRegistrations = [
-    { id: 1, name: 'Amanda Foster', email: 'amanda.f@email.com', date: '2 hours ago', status: 'pending', source: 'mbctherapy.com' },
-    { id: 2, name: 'Robert Kim', email: 'robert.kim@email.com', date: '5 hours ago', status: 'verified', source: 'mbctherapy.com' },
-    { id: 3, name: 'Jessica Martinez', email: 'j.martinez@email.com', date: '1 day ago', status: 'new', source: 'mbctherapy.com' },
-  ];
+  // const newRegistrations = [
+  //   { id: 1, name: 'Amanda Foster', email: 'amanda.f@email.com', date: '2 hours ago', status: 'pending', source: 'mbctherapy.com' },
+  //   { id: 2, name: 'Robert Kim', email: 'robert.kim@email.com', date: '5 hours ago', status: 'verified', source: 'mbctherapy.com' },
+  //   { id: 3, name: 'Jessica Martinez', email: 'j.martinez@email.com', date: '1 day ago', status: 'new', source: 'mbctherapy.com' },
+  // ];
 
-  const pendingTasks = [
-    { id: 1, task: 'Complete progress notes for Sarah Johnson', type: 'note', priority: 'high' },
-    { id: 2, task: 'Review intake form for Michael Chen', type: 'form', priority: 'medium' },
-    { id: 3, task: 'Respond to message from Emily Rodriguez', type: 'message', priority: 'high' },
-    { id: 4, task: 'Upload treatment plan for David Thompson', type: 'document', priority: 'low' },
-  ];
+  // const pendingTasks = [
+  //   { id: 1, task: 'Complete progress notes for Sarah Johnson', type: 'note', priority: 'high' },
+  //   { id: 2, task: 'Review intake form for Michael Chen', type: 'form', priority: 'medium' },
+  //   { id: 3, task: 'Respond to message from Emily Rodriguez', type: 'message', priority: 'high' },
+  //   { id: 4, task: 'Upload treatment plan for David Thompson', type: 'document', priority: 'low' },
+  // ];
 
   const quickActions = [
     { icon: UserPlus, label: 'Add Client', color: 'from-sky-500 to-blue-500', action: () => setShowAddClientModal(true) },
@@ -399,16 +456,16 @@ export function DashboardHome() {
       </div>
 
       {/* Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-slate-200 rounded-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card className="border-slate-200 rounded-2xl cursor-pointer hover:shadow-lg transition-all" onClick={() => onNavigate?.('clients')}>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-slate-600">Total Clients</p>
-                <p className="text-slate-900 mt-2">142</p>
+                <p className="text-slate-900 mt-2">{totalClients}</p>
                 <div className="flex items-center gap-1 mt-2 text-xs text-emerald-600">
                   <TrendingUp className="w-3 h-3" />
-                  <span>+12% from last month</span>
+                  <span>Monthly registrations</span>
                 </div>
               </div>
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center">
@@ -418,32 +475,15 @@ export function DashboardHome() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 rounded-2xl">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-slate-600">Active Plans</p>
-                <p className="text-slate-900 mt-2">87</p>
-                <div className="flex items-center gap-1 mt-2 text-xs text-slate-500">
-                  <span>3 ending this week</span>
-                </div>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                <Activity className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-200 rounded-2xl">
+        <Card className="border-slate-200 rounded-2xl cursor-pointer hover:shadow-lg transition-all" onClick={() => onNavigate?.('appointments')}>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-slate-600">Sessions This Week</p>
-                <p className="text-slate-900 mt-2">28</p>
+                <p className="text-slate-900 mt-2">{thisWeekSessions}</p>
                 <div className="flex items-center gap-1 mt-2 text-xs text-emerald-600">
                   <CheckCircle2 className="w-3 h-3" />
-                  <span>18 completed</span>
+                  <span>Appointments scheduled</span>
                 </div>
               </div>
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center">
@@ -453,14 +493,14 @@ export function DashboardHome() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 rounded-2xl">
+        <Card className="border-slate-200 rounded-2xl cursor-pointer hover:shadow-lg transition-all" onClick={() => onNavigate?.('notes')}>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-slate-600">Pending Tasks</p>
-                <p className="text-slate-900 mt-2">12</p>
+                <p className="text-slate-900 mt-2">{todaysNotes.length}</p>
                 <div className="flex items-center gap-1 mt-2 text-xs text-amber-600">
-                  <span>4 high priority</span>
+                  <span>Notes to complete</span>
                 </div>
               </div>
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-500 flex items-center justify-center">
@@ -472,44 +512,75 @@ export function DashboardHome() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Today's Schedule */}
-        <Card className="lg:col-span-2 border-slate-200 rounded-2xl">
+        {/* Important Notes */}
+        <Card className="lg:col-span-2 border-slate-200 rounded-2xl cursor-pointer hover:shadow-lg transition-all" onClick={() => onNavigate?.('notes')}>
           <CardHeader className="pb-4">
-            <CardTitle className="flex items-center justify-between">
-              <span>Today's Schedule</span>
-              <Badge variant="outline" className="text-xs">{todaysSessions.length} sessions</Badge>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600" />
+                <span>Important Notes</span>
+              </CardTitle>
+              <ChevronRight className="w-5 h-5 text-slate-400" />
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {todaysSessions.map((session) => (
-              <div
-                key={session.id}
-                className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center justify-center w-16 h-16 bg-white rounded-xl border border-slate-200">
-                  <div className="text-center">
-                    <div className="text-xs text-slate-500">
-                      {session.time.split(' ')[1]}
-                    </div>
-                    <div className="text-sm text-slate-900">
-                      {session.time.split(' ')[0]}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="text-slate-900">{session.client}</div>
-                  <div className="text-sm text-slate-500">{session.type}</div>
-                </div>
-                <div className="flex gap-2">
-                  <button className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                    Details
-                  </button>
-                  <button className="px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm hover:bg-cyan-700 transition-colors">
-                    Start Session
-                  </button>
-                </div>
+          <CardContent>
+            {todaysNotes.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-slate-600">No pending notes</p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAddNoteModal(true);
+                  }}
+                  className="mt-4 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200 transition-colors"
+                >
+                  + Add Note
+                </button>
               </div>
-            ))}
+            ) : (
+              <div className="space-y-3">
+                {todaysNotes.slice(0, 3).map((note: any) => (
+                  <div 
+                    key={note.id} 
+                    className="group flex items-start gap-3 p-4 rounded-lg bg-slate-50 border border-slate-200 hover:border-slate-300 transition-all"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={note.completed || false}
+                      onChange={() => completeNote(note.id)}
+                      className="mt-1 w-4 h-4 cursor-pointer"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline" className="text-xs">
+                          {note.note_type}
+                        </Badge>
+                        {note.reminder_time && (
+                          <span className="text-xs text-slate-500">{note.reminder_time}</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-700 line-clamp-2">
+                        {note.content}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNoteFromDashboard(note.id);
+                      }}
+                      className="p-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {todaysNotes.length > 3 && (
+                  <button className="w-full py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                    View all notes ({todaysNotes.length})
+                  </button>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -538,181 +609,8 @@ export function DashboardHome() {
         </Card>
       </div>
 
-      {/* Today's Notes */}
-      <Card className="border-slate-200 rounded-2xl">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Today's Reminders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {todaysNotes.length === 0 ? (
-            <div className="text-center py-6 text-slate-400">
-              <p className="text-sm">All caught up!</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {todaysNotes.map((note: any) => (
-                <div 
-                  key={note.id} 
-                  className="group flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-50 border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold text-slate-600 uppercase tracking-tight">
-                        {note.note_type === 'Progress Note' ? '📝' : '📋'} {note.note_type}
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        {note.reminder_time}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-700 line-clamp-1">
-                      {note.content}
-                    </p>
-                  </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        completeNote(note.id);
-                      }}
-                      className="p-2 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-                      title="Mark as done"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => deleteNoteFromDashboard(note.id)}
-                      className="p-2 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                      title="Delete"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* New Patient Registrations from mbctherapy.com */}
-        <Card className="border-slate-200 rounded-2xl">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-cyan-600" />
-                <span>New Patient Registrations</span>
-              </div>
-              <Badge className="bg-cyan-100 text-cyan-700 border-0">mbctherapy.com</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex gap-2 mb-4">
-              <button className="px-3 py-1.5 bg-cyan-50 text-cyan-700 rounded-lg text-xs">
-                All
-              </button>
-              <button className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200">
-                New
-              </button>
-              <button className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200">
-                Pending
-              </button>
-              <button className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200">
-                Verified
-              </button>
-            </div>
-            {newRegistrations.map((registration) => (
-              <div
-                key={registration.id}
-                className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <Avatar className="w-10 h-10">
-                  <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-teal-500 text-white">
-                    {registration.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm text-slate-900">{registration.name}</div>
-                  <div className="text-xs text-slate-500 truncate">{registration.email}</div>
-                </div>
-                <div className="text-right">
-                  <Badge
-                    variant="outline"
-                    className={`text-xs mb-1 ${
-                      registration.status === 'verified'
-                        ? 'border-emerald-300 text-emerald-700 bg-emerald-50'
-                        : registration.status === 'pending'
-                        ? 'border-amber-300 text-amber-700 bg-amber-50'
-                        : 'border-cyan-300 text-cyan-700 bg-cyan-50'
-                    }`}
-                  >
-                    {registration.status}
-                  </Badge>
-                  <div className="text-xs text-slate-400">{registration.date}</div>
-                </div>
-              </div>
-            ))}
-            <button className="w-full py-3 text-sm text-cyan-600 hover:bg-cyan-50 rounded-xl transition-colors">
-              View All Registrations →
-            </button>
-          </CardContent>
-        </Card>
-
-        {/* Pending Tasks */}
-        <Card className="border-slate-200 rounded-2xl">
-          <CardHeader className="pb-4">
-            <CardTitle>Pending Tasks</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {pendingTasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-start gap-3 p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <div className="mt-0.5">
-                  <div className="w-5 h-5 rounded border-2 border-slate-300 hover:border-cyan-500 transition-colors" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm text-slate-900">{task.task}</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${
-                        task.type === 'note'
-                          ? 'border-blue-300 text-blue-700 bg-blue-50'
-                          : task.type === 'form'
-                          ? 'border-purple-300 text-purple-700 bg-purple-50'
-                          : task.type === 'message'
-                          ? 'border-cyan-300 text-cyan-700 bg-cyan-50'
-                          : 'border-slate-300 text-slate-700 bg-slate-50'
-                      }`}
-                    >
-                      {task.type}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${
-                        task.priority === 'high'
-                          ? 'border-red-300 text-red-700 bg-red-50'
-                          : task.priority === 'medium'
-                          ? 'border-amber-300 text-amber-700 bg-amber-50'
-                          : 'border-slate-300 text-slate-700 bg-slate-50'
-                      }`}
-                    >
-                      {task.priority}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            ))}
-            <button className="w-full py-3 text-sm text-cyan-600 hover:bg-cyan-50 rounded-xl transition-colors">
-              View All Tasks →
-            </button>
-          </CardContent>
-        </Card>
-      </div>
+      {/* New Patient Registrations from Contact Form */}
+      <NewPatientRegistrations />
 
       {/* Appointment Modal */}
       {showAppointmentModal && (
