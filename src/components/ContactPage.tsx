@@ -3,7 +3,7 @@ import { Mail, Phone, MapPin, Send, CheckCircle2, AlertCircle } from 'lucide-rea
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 function apiUrl(path: string): string {
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const baseUrl = import.meta.env.VITE_API_URL || '';
   return `${baseUrl}${path}`;
 }
 
