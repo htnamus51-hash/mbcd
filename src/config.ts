@@ -42,5 +42,12 @@ export { API_URL, TURN_SERVERS };
 
 // Helper function to build API URLs
 export function apiUrl(endpoint: string): string {
-  return `${API_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  
+  // Prevent double /api prefix if API_URL also ends with /api (e.g. in production)
+  if (API_URL.endsWith('/api') && path.startsWith('/api/')) {
+    return `${API_URL}${path.substring(4)}`;
+  }
+  
+  return `${API_URL}${path}`;
 }
