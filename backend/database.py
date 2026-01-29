@@ -23,11 +23,9 @@ try:
         serverSelectionTimeoutMS=15000,
         socketTimeoutMS=15000,
         connectTimeoutMS=15000,
-        retryWrites=False,
-        tls=True,
-        tlsAllowInvalidCertificates=True  # Bypass SSL verification issues for development
+        tlsCAFile=certifi.where() # Use certifi bundle strictly
     )
-    db = client.mbc
+    db = client.get_database("mbc_db")
     users_collection = db.users
     appointments_collection = db.appointments
     clients_collection = db.clients
