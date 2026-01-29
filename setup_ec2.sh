@@ -64,7 +64,7 @@ sudo cp -r $FRONTEND_BUILD_DIR/* /var/www/html/
 
 # Configure Nginx
 echo "Configuring Nginx..."
-sudo bash -c "cat > /etc/nginx/sites-available/mbc <<EOF
+sudo tee /etc/nginx/sites-available/mbc > /dev/null <<'EOF'
 server {
     listen 80;
     server_name _;
@@ -73,19 +73,19 @@ server {
     index index.html;
 
     location / {
-        try_files \$uri \$uri/ /index.html;
+        try_files $uri $uri/ /index.html;
     }
 
     location /api {
         proxy_pass http://localhost:8000;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
     }
 }
-EOF"
+EOF
 
 # Enable configuration if not already enabled
 sudo ln -sf /etc/nginx/sites-available/mbc /etc/nginx/sites-enabled/
