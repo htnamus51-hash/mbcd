@@ -1,5 +1,7 @@
-// Force Railway URL for all environments during testing
-const API_URL = 'http://127.0.0.1:8000';
+// Use env override when provided, otherwise use same-origin API proxy
+const API_URL = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_URL)
+  ? (import.meta as any).env.VITE_API_URL
+  : '/api';
 
 // TURN servers configuration for WebRTC cross-device connectivity
 // Can be overridden via Vite env: VITE_TURN_SERVERS='[...]'
